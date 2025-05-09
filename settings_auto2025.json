@@ -1,0 +1,61 @@
+{
+  "timestamp": "2025-05-09T15:34:09.181365",
+  "project": "auto2025",
+  "local_path": "~/Desktop/GitHub/auto2025/",
+  "web_paths": {
+    "data": "AI/data/angebote.json",
+    "dashboard": "AI/dashboard/index.html",
+    "admin": "AI/admin/index.html",
+    "assets": "AI/assets/"
+  },
+  "server": {
+    "domain": "www.schweizerhof-am-see.at",
+    "ssh_host": "host25.duckdns.org",
+    "ftp_path": "/www/AI/",
+    "crawler_path": "/run/suv_crawler/"
+  },
+  "crawler": {
+    "platforms": [
+      "mobile.de",
+      "autoscout24.de",
+      "willhaben.at",
+      "heycar.de",
+      "carwow.de",
+      "autohero.de",
+      "autouncle.de",
+      "pkw.de",
+      "auto1.com",
+      "autotrader",
+      "autoservice.de",
+      "autovermarktung.de",
+      "car-universe.de",
+      "autohaus24.de",
+      "gebrauchtwagen.at",
+      "autoscout24.at",
+      "bazar.at",
+      "gebrauchtwagen-markt.at"
+    ],
+    "interval_minutes": 30,
+    "max_price": 30000,
+    "preferred_engines": [
+      "Benzin",
+      "Elektro",
+      "Hybrid",
+      "Diesel"
+    ],
+    "admin_configurable": true
+  },
+  "dashboard": {
+    "default_sort": "ez",
+    "entries_per_page": 10,
+    "columns_visible": [
+      "fahrzeug",
+      "preis",
+      "ez",
+      "km",
+      "antrieb",
+      "bewertung"
+    ],
+    "filters_enabled": true
+  }
+}

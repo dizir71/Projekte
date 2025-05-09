@@ -1,0 +1,113 @@
+# Systemumgebung & Einschränkungen
+
+## CMS-System
+Easybooking / TYPO3 (geschlossen)
+
+## Zugriffsmöglichkeiten
+- Nur override.css editierbar
+- Nur HTML-Elemente für JavaScript (kein Templatezugriff)
+- JavaScript: Nur direkt in HTML (jQuery 3.1.1 erlaubt)
+
+## Servername
+host25.ssl-net.net (Alias: host25)
+
+## Crawler-Verzeichnis
+/run/ (außerhalb des Webroots)
+
+
+# Projekt: Schweizerhof am See
+
+## Struktur
+- Galerie nur auf Startseite
+- Separater Menüpunkt 'Galerie' unter 'Unterkunft'
+- Headerhöhe: 40px
+- Logo doppelt so groß mit Weiß-Glühen
+- Designfarben: Blau, harmonisch
+- Stil: Alpine, modern, kontrastreich
+- Responsives Layout, animierter Hintergrund (Blautöne)
+- Buchungsbutton stilvoll
+
+## Bilderpfad
+/userdaten/customerData/11417/slideshow/gallerie/
+
+## Galerie
+UniteGallery oder FancyBox
+
+## Warhammer
+Nur echter Content im Unterordner kunst/warhammer/
+
+
+# Projekt: The-Center.net
+
+## Frühere Domain
+online-web.com
+
+## Aktuelle Domain
+the-center.net
+
+## Fokus
+CMS-Entwicklung (TYPO3, Python, HTML5), Sicherheit, Mittelstand
+
+## CI
+- **Logo:** Minimalistisch 'TCN', dreifarbiges C (Blau, Gelb, Türkis)
+- **Designfarben:** Dunkelblau, dunkles Gelb, Türkis
+- **Logo-Schwarzweiß:** Muss stark wirken
+- **Stil:** Apfel-/Uhr-Stil mit Rostrot als Akzentfarbe
+
+## Technik
+- TYPO3-Sitepackage + statische HTML-Version
+- Demo basiert auf demo.typo3.org
+- Barrierefrei nach WCAG
+- App mit automatisierten Tests, GitHub (dizir71), Updates alle 10 Min
+
+
+# Projekt: SUV-Dashboard
+
+## Ziel
+Große Hunde, SUV mit Platz, tiefer Ladekante, AHK, evtl. Sitzbelüftung
+
+## Marken
+- Porsche
+- Mercedes ML
+- Lexus
+- VW
+- Skoda
+
+## Ausschluss
+BMW
+
+## Crawler
+- **Intervall:** 30 Minuten
+- **Livefeed:** angebote.json
+
+## Quellen
+- **Deutschland:** ['mobile.de', 'autoscout24.de', 'heycar.de', 'carwow.de', 'autohero.de', 'autouncle.de', 'pkw.de', 'auto1.com', 'autotrader', 'autoservice.de', 'autovermarktung.de', 'car-universe.de', 'autohaus24.de']
+- **Österreich:** ['autoscout24.at', 'gebrauchtwagen.at', 'bazar.at', 'gebrauchtwagen-markt.at', '12gebrauchtwagen.de']
+
+## Dashboard
+- Admin-Modul mit Statusanzeige (grün/gelb/rot) + Logs
+- Spaltenanzeige und Sortierung konfigurierbar
+- Dropdown: 5 / 10 / 50 Einträge
+- Pagination mit Seitenwahl
+- ZIP-Ausgabe mit Pfadangabe
+
+
+# Weitere Projekte
+
+## OCR-Webinterface
+- **Technik:** Tesseract, Vue.js/React
+- **Zugriff:** /home/user/scans + Google Drive
+
+## Ernährungsdatenbank
+- **Fokus:** Zuckerarten, Glykämie, Mikronährstoffe (keine Kalorien)
+- **Update:** Automatisch alle 4 Monate
+- **Quellenabgleich:** Mind. 2
+- **Funktionen:** Filter nach Zubereitung, Diät, Allergien, Exklusion
+
+## Job-Suche
+- **Ort:** Wien
+- **Art:** Vollzeit, sofort bewerbbar
+- **Ausschlüsse:** ['Sozialarbeit', 'Erwachsenenbildung', 'Eventmanagement']
+- **Erwünscht:** ['Migration', 'Kommunikation', 'Politik', 'Beratung', 'Arbeits-/Mietrecht', 'internationale Zusammenarbeit']
+
+
