@@ -24,6 +24,8 @@ const LcarsSound = (() => {
   function tone({ freqStart, freqEnd, duration, type = "sine", gain = 1, delay = 0 }) {
     const c = ensureContext();
     if (!c || !enabled) return;
+    const peak = volume * gain;
+    if (peak <= 0) return; /* exponentialRamp erlaubt keinen Zielwert 0 */
     const t0 = c.currentTime + delay;
     const osc = c.createOscillator();
     const g = c.createGain();
@@ -33,7 +35,7 @@ const LcarsSound = (() => {
       osc.frequency.exponentialRampToValueAtTime(freqEnd, t0 + duration);
     }
     g.gain.setValueAtTime(0.0001, t0);
-    g.gain.exponentialRampToValueAtTime(volume * gain, t0 + 0.01);
+    g.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak), t0 + 0.01);
     g.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
     osc.connect(g).connect(c.destination);
     osc.start(t0);

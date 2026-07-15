@@ -34,6 +34,8 @@ html, body {
   font-family: var(--lcars-font);
   letter-spacing: 0.04em;
   overflow: hidden;
+  scrollbar-color: var(--lcars-orange) #0a0a0a;
+  scrollbar-width: thin;
 }
 
 body { display: flex; flex-direction: column; padding: 12px; gap: 8px; }
@@ -103,10 +105,15 @@ body { display: flex; flex-direction: column; padding: 12px; gap: 8px; }
 
 #lcars-clock {
   position: absolute;
-  top: 40px; right: 20px;
+  top: 46px; right: 60px;
+  height: var(--bar-h);
+  line-height: var(--bar-h);
   font-size: 15px;
   color: var(--lcars-skyblue);
   text-transform: uppercase;
+  background: var(--lcars-bg);
+  padding: 0 12px;
+  z-index: 1;
 }
 
 /* ------------------------------------------------------------------ */
@@ -140,8 +147,8 @@ body { display: flex; flex-direction: column; padding: 12px; gap: 8px; }
   border-radius: 0;
   letter-spacing: 0.05em;
 }
-.nav-btn:first-child { border-radius: calc(var(--elbow-r) / 2) 0 0 0; }
-.nav-btn:last-child  { border-radius: 0 0 0 calc(var(--elbow-r) / 2); }
+.nav-btn:first-of-type { border-radius: calc(var(--elbow-r) / 2) 0 0 0; }
+.nav-btn:last-of-type  { border-radius: 0 0 0 calc(var(--elbow-r) / 2); }
 
 .nav-btn.c-orange { background: var(--lcars-orange); }
 .nav-btn.c-peach  { background: var(--lcars-peach); }
@@ -187,6 +194,7 @@ body { display: flex; flex-direction: column; padding: 12px; gap: 8px; }
   gap: 8px;
   height: 44px;
   flex: 0 0 auto;
+  position: relative;
 }
 .footer-elbow {
   width: var(--sidebar-w);
@@ -207,10 +215,15 @@ body { display: flex; flex-direction: column; padding: 12px; gap: 8px; }
 }
 #lcars-status-line {
   position: absolute;
-  bottom: 16px; right: 20px;
+  top: 0; right: 60px;
+  height: var(--bar-h);
+  line-height: var(--bar-h);
   font-size: 13px;
   color: var(--lcars-peach);
   text-transform: uppercase;
+  background: var(--lcars-bg);
+  padding: 0 12px;
+  z-index: 1;
 }
 
 /* ------------------------------------------------------------------ */
