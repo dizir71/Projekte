@@ -66,12 +66,36 @@ await page.waitForSelector(".info-card");
 check("Projektdetails öffnen mit Quellenvermerk", (await page.textContent("#lcars-content")).includes("Quellen:"));
 
 /* ---- Alle Panels über die Navigation ---- */
-for (const p of ["dashboard", "status", "logbuch", "konfig", "konventionen", "export", "diagnostik", "audio"]) {
+for (const p of ["dashboard", "befehle", "status", "logbuch", "konfig", "konventionen", "export", "diagnostik", "audio"]) {
   await page.click(`.nav-btn[data-panel="${p}"]`);
   await page.waitForTimeout(80);
   const leer = await page.evaluate(() => document.getElementById("lcars-content").children.length === 0);
   check("Panel rendert: " + p, !leer);
 }
+
+/* ---- Befehlskonsole: Reiter, Ausführung, Feedback, Hilfe/Optionen ---- */
+await page.click('.nav-btn[data-panel="befehle"]');
+await page.waitForSelector(".cmd-layout");
+const reiter = await page.locator(".cmd-tab").count();
+check("Befehlskonsole: Reiter vorhanden", reiter >= 5, reiter + " Reiter");
+check("Befehlskonsole: Feedback-Fenster vorhanden", await page.locator("#cmd-feedback").count() === 1);
+// In den Reiter „System" wechseln und einen Befehl ausführen
+await page.click('.cmd-tab:has-text("System")');
+await page.waitForTimeout(60);
+await page.click('.cmd-item:has-text("Systemstatus prüfen") .lcars-btn');
+await page.waitForSelector("#cmd-feedback .cmd-fb-entry");
+check("Befehl schreibt Ergebnis ins Feedback-Fenster", await page.locator("#cmd-feedback .cmd-fb-entry").count() >= 1);
+// Hilfe/Optionen sind zunächst ausgeblendet, dann aufklappbar
+const item = page.locator('.cmd-item:has-text("Systemstatus prüfen")');
+check("Optionen zunächst ausgeblendet", await item.locator(".cmd-help").isVisible() === false);
+await item.locator(".cmd-help-btn").click();
+await page.waitForTimeout(60);
+check("Hilfe/Optionen aufklappbar", await item.locator(".cmd-help").isVisible() === true);
+check("Option ist als Schaltfläche aufrufbar", await item.locator(".cmd-opt").count() >= 1);
+const fbVorher = await page.locator("#cmd-feedback .cmd-fb-entry").count();
+await item.locator(".cmd-opt").first().click();
+await page.waitForTimeout(60);
+check("Option-Aufruf erzeugt Feedback", await page.locator("#cmd-feedback .cmd-fb-entry").count() === fbVorher + 1);
 
 /* ---- Systemstatus: alle Subsysteme grün ---- */
 await page.click('.nav-btn[data-panel="status"]');

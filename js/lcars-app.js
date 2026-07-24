@@ -514,6 +514,341 @@ const LcarsApp = (() => {
     return wrap;
   };
 
+  /* ==========================================================================
+     Panel: Befehlskonsole — alle Funktionen als Befehle, nach Aufgabe in
+     Reitern. Jeder Befehl ist direkt ausführbar; „Hilfe/Optionen" blendet
+     Beschreibung und (ebenfalls ausführbare) Optionen ein. Ergebnisse
+     erscheinen rechts im Feedback-Fenster (über 2 Spalten, mit Rollbalken).
+     Rein additiv — nutzt ausschließlich die bereits vorhandenen Funktionen.
+     ========================================================================== */
+
+  let COMMANDS = [];
+  let cmdFeedbackLog = [];
+  let cmdActiveTab = null;
+
+  /* Feedback-Inhalt kann Text, ein DOM-Element oder eine Node-Fabrik
+     (Funktion → Node) sein; Fabriken erlauben verlustfreies Neuzeichnen. */
+  function renderFeedbackEntry(entry) {
+    const row = el("div", { class: "cmd-fb-entry" });
+    const head = el("div", { class: "cmd-fb-head" },
+      el("span", { class: "cmd-fb-label" },
+        el("span", { class: "status-dot status-" + (entry.level === "error" ? "rot" : entry.level === "warn" ? "gelb" : "gruen") }),
+        entry.label),
+      el("span", { class: "cmd-fb-zeit" }, entry.zeit));
+    const body = el("div", { class: "cmd-fb-body log-" + entry.level });
+    const c = typeof entry.content === "function" ? entry.content() : entry.content;
+    if (c instanceof Node) body.appendChild(c);
+    else body.appendChild(el("pre", { class: "cmd-pre" }, c == null ? "OK" : String(c)));
+    row.appendChild(head);
+    row.appendChild(body);
+    return row;
+  }
+
+  function pushFeedback(label, level, content) {
+    const entry = { zeit: wienZeit(), label, level: level || "ok", content };
+    cmdFeedbackLog.push(entry);
+    if (cmdFeedbackLog.length > 200) cmdFeedbackLog.shift();
+    const win = document.getElementById("cmd-feedback");
+    if (win) {
+      const empty = win.querySelector(".cmd-fb-empty");
+      if (empty) empty.remove();
+      win.appendChild(renderFeedbackEntry(entry));
+      win.scrollTop = win.scrollHeight;
+    }
+    log(level === "error" ? "error" : level === "warn" ? "warn" : "ok", "Befehl: " + label);
+  }
+
+  function execCommand(cmd, arg) {
+    try {
+      const ret = cmd.run ? cmd.run(arg) : null;
+      let level = "ok", content = ret;
+      if (ret && typeof ret === "object" && !(ret instanceof Node) && "content" in ret) {
+        level = ret.level || "ok"; content = ret.content;
+      }
+      pushFeedback(cmd.label, level, content);
+      LcarsSound.play(level === "error" ? "deny" : "ok");
+    } catch (e) {
+      pushFeedback(cmd.label, "error", "Fehler: " + e.message);
+      LcarsSound.play("deny");
+    }
+  }
+
+  /* Hilfsknoten für Befehlsausgaben */
+  function projekteListeNode(list) {
+    if (!list.length) return el("p", {}, "Keine Projekte für dieses Kriterium.");
+    const rows = list.map(p => el("tr", {},
+      el("td", {}, statusDot(p.status), p.name),
+      el("td", {}, p.status.toUpperCase()),
+      el("td", {}, p.kategorie)));
+    return el("div", { class: "table-wrap" },
+      el("table", { class: "lcars-table" },
+        el("thead", {}, el("tr", {}, el("th", {}, "Projekt"), el("th", {}, "Status"), el("th", {}, "Kategorie"))),
+        el("tbody", {}, rows)));
+  }
+
+  function addProvider(name) {
+    const v = String(name || "").trim();
+    if (!v) return { level: "warn", content: "Kein Anbietername angegeben." };
+    const cfg = loadConfig();
+    if (cfg.plattformen.includes(v)) return { level: "warn", content: "Anbieter existiert bereits (Duplikat verhindert): " + v };
+    cfg.plattformen.push(v);
+    saveConfig(cfg);
+    return "Anbieter hinzugefügt: " + v + " (jetzt " + cfg.plattformen.length + " Anbieter).";
+  }
+
+  function removeProvider(name) {
+    const v = String(name || "").trim();
+    if (!v) return { level: "warn", content: "Kein Anbietername angegeben." };
+    const cfg = loadConfig();
+    if (!cfg.plattformen.includes(v)) return { level: "warn", content: "Anbieter nicht gefunden: " + v };
+    cfg.plattformen = cfg.plattformen.filter(x => x !== v);
+    saveConfig(cfg);
+    return "Anbieter entfernt: " + v + " (jetzt " + cfg.plattformen.length + " Anbieter).";
+  }
+
+  function diagnostikFactory() {
+    const tmp = el("div");
+    runDiagnostics(tmp);
+    return () => {
+      const c = el("div");
+      const t = tmp.querySelector("table");
+      if (t) c.appendChild(el("div", { class: "table-wrap" }, t.cloneNode(true)));
+      const r = tmp.querySelector("#diag-ergebnis");
+      if (r) c.appendChild(el("p", { class: r.className }, r.textContent));
+      return c;
+    };
+  }
+
+  function buildCommands() {
+    const cmds = [];
+
+    /* --- Navigation: jedes Panel direkt öffnen --- */
+    const navColors = { dashboard: "", status: "b-lilac", logbuch: "b-blue", konfig: "b-gold",
+      konventionen: "b-blue", export: "b-gold", diagnostik: "b-lilac", audio: "b-blue" };
+    [["dashboard", "Dashboard öffnen"], ["status", "Systemstatus öffnen"], ["logbuch", "Logbuch öffnen"],
+     ["konfig", "Konfiguration öffnen"], ["konventionen", "Konventionen öffnen"], ["export", "Datenexport öffnen"],
+     ["diagnostik", "Diagnostik öffnen"], ["audio", "Audio öffnen"]].forEach(([p, label]) => {
+      cmds.push({ cat: "Navigation", label, color: navColors[p] || "",
+        help: "Öffnet direkt das Panel " + label.replace(" öffnen", "") + ".",
+        run: () => { showPanel(p); return "Panel geöffnet: " + p.toUpperCase(); } });
+    });
+
+    /* --- System --- */
+    cmds.push({ cat: "System", label: "Diagnose starten", color: "b-blue",
+      help: "Führt den vollständigen Selbsttest (Stufe 3) aus und zeigt die Ergebnistabelle.",
+      options: [{ name: "--kurz", info: "nur das Gesamtergebnis", action: () => { const tmp = el("div"); runDiagnostics(tmp); const r = tmp.querySelector("#diag-ergebnis"); return r ? r.textContent : "—"; } }],
+      run: () => diagnostikFactory() });
+    cmds.push({ cat: "System", label: "Systemstatus prüfen", color: "b-lilac",
+      help: "Listet alle Subsysteme mit Status und Detailangabe.",
+      options: [{ name: "--nur-fehler", info: "nur gestörte Subsysteme", action: () => { const bad = systemChecks().filter(c => c.status !== "gruen"); return bad.length ? bad.map(c => "✗ " + c.name + " — " + c.info).join("\n") : "Keine Störungen — alle Subsysteme grün."; } }],
+      run: () => systemChecks().map(c => (c.status === "gruen" ? "✓" : "✗") + " " + c.name + " — " + c.info).join("\n") });
+    cmds.push({ cat: "System", label: "Roter Alarm umschalten", color: "b-red",
+      help: "Schaltet den Roten Alarm um (Warnfarben + Alarmton).",
+      options: [
+        { name: "an", info: "Alarm einschalten", action: () => { if (!redAlert) toggleRedAlert(); return "Roter Alarm aktiviert."; } },
+        { name: "aus", info: "Alarm ausschalten", action: () => { if (redAlert) toggleRedAlert(); return "Roter Alarm beendet."; } }],
+      run: () => { toggleRedAlert(); return "Roter Alarm " + (redAlert ? "AKTIVIERT." : "beendet."); } });
+    cmds.push({ cat: "System", label: "Systemzeit anzeigen", color: "b-blue",
+      help: "Zeigt die aktuelle Systemzeit (Europe/Vienna).",
+      options: [{ name: "--utc", info: "Zeit in UTC (ISO 8601)", action: () => "UTC: " + new Date().toISOString() }],
+      run: () => "Systemzeit: " + wienZeit() + " · Europe/Vienna (laut Systemzeit)" });
+
+    /* --- Daten --- */
+    cmds.push({ cat: "Daten", label: "Projekte auflisten", color: "",
+      help: "Listet alle Projekte. Optionen filtern nach Status; die Eingabe sucht im Namen.",
+      input: { label: "Namenssuche", placeholder: "z. B. auto" },
+      options: ["aktiv", "wartung", "archiviert"].map(s => ({ name: s, info: "nur Status " + s,
+        action: () => projekteListeNode(DATA.projekte.filter(p => p.status === s)) })),
+      run: (arg) => { const q = String(arg || "").trim().toLowerCase();
+        const list = q ? DATA.projekte.filter(p => p.name.toLowerCase().includes(q)) : DATA.projekte;
+        return projekteListeNode(list); } });
+    cmds.push({ cat: "Daten", label: "Projektdetails anzeigen", color: "b-lilac",
+      help: "Zeigt alle Detaildaten eines Projekts. ID oder Namensteil eingeben und ausführen.",
+      input: { label: "Projekt-ID / Name", placeholder: "z. B. auto2025" },
+      run: (arg) => { if (!arg) return "Bitte Projekt-ID oder Namensteil angeben. Verfügbar: " + DATA.projekte.map(p => p.id).join(", ");
+        const q = String(arg).toLowerCase();
+        const p = DATA.projekte.find(x => x.id === arg || x.name.toLowerCase().includes(q));
+        if (!p) return { level: "warn", content: "Kein Projekt gefunden für: " + arg };
+        return () => el("div", {}, el("h3", { class: "cmd-fb-h3" }, p.name), renderValue(p.details)); } });
+    cmds.push({ cat: "Daten", label: "Konventionen auflisten", color: "b-blue",
+      help: "Listet alle geladenen Konventionen mit Quellenangabe.",
+      run: () => () => el("ul", { class: "cmd-ul" }, DATA.konventionen.map(k =>
+        el("li", {}, el("strong", {}, k.titel + ": "), k.regel + " [" + k.quellen.join(", ") + "]"))) });
+    cmds.push({ cat: "Daten", label: "Präferenzen auflisten", color: "b-blue",
+      help: "Listet alle hinterlegten Präferenzen.",
+      run: () => () => el("ul", { class: "cmd-ul" }, DATA.praeferenzen.map(p => el("li", {}, p))) });
+    cmds.push({ cat: "Daten", label: "Statistik anzeigen", color: "b-gold",
+      help: "Kennzahlen: Projekte je Status, Quellen, Konventionen.",
+      run: () => { const by = {}; DATA.projekte.forEach(p => { by[p.status] = (by[p.status] || 0) + 1; });
+        return [
+          "Projekte gesamt: " + DATA.projekte.length,
+          ...Object.entries(by).map(([s, n]) => "  · " + s + ": " + n),
+          "Quellen: " + DATA.meta.quellen.length + " (" + DATA.meta.quellen.map(q => q.id).join(", ") + ")",
+          "Konventionen: " + DATA.konventionen.length,
+          "Präferenzen: " + DATA.praeferenzen.length
+        ].join("\n"); } });
+
+    /* --- Export --- */
+    cmds.push({ cat: "Export", label: "JSON exportieren", color: "",
+      help: "Lädt das komplette Datenmodell als lcars-data.json herunter.",
+      run: () => { downloadText("lcars-data.json", JSON.stringify(DATA, null, 2), "application/json"); return "JSON-Export gestartet: lcars-data.json"; } });
+    cmds.push({ cat: "Export", label: "Markdown exportieren", color: "b-lilac",
+      help: "Lädt alle Projekte, Konventionen und Präferenzen als Markdown herunter.",
+      run: () => { downloadText("projekte-gesamt.md", datenAlsMarkdown(), "text/markdown"); return "Markdown-Export gestartet: projekte-gesamt.md"; } });
+    cmds.push({ cat: "Export", label: "ZIP exportieren", color: "b-gold",
+      help: "Bündelt JSON und Markdown in ein ZIP-Archiv (Downloads).",
+      run: () => { const name = "lcars_export_" + new Date().toISOString().slice(0, 10) + ".zip";
+        const blob = buildZip([["lcars-data.json", JSON.stringify(DATA, null, 2)], ["projekte-gesamt.md", datenAlsMarkdown()]]);
+        const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name; a.click(); URL.revokeObjectURL(a.href);
+        return "ZIP-Export gestartet: Downloads/" + name; } });
+    cmds.push({ cat: "Export", label: "Logbuch exportieren", color: "b-blue",
+      help: "Lädt das aktuelle Logbuch als Textdatei herunter.",
+      run: () => { downloadText("lcars-log.txt", logs.map(e => `[${e.zeit}] [${e.level}] ${e.msg}`).join("\n")); return "Log-Export gestartet: lcars-log.txt (" + logs.length + " Zeilen)"; } });
+
+    /* --- Konfiguration --- */
+    cmds.push({ cat: "Konfiguration", label: "Konfiguration anzeigen", color: "",
+      help: "Zeigt die aktuell gespeicherte Konfiguration (localStorage bzw. Standard).",
+      run: () => () => renderValue(loadConfig()) });
+    cmds.push({ cat: "Konfiguration", label: "Anbieter hinzufügen", color: "b-gold",
+      help: "Fügt einen Plattform-/Anbieternamen hinzu (Duplikate werden abgewiesen).",
+      input: { label: "Anbieter", placeholder: "z. B. willhaben.at" },
+      run: (arg) => addProvider(arg) });
+    cmds.push({ cat: "Konfiguration", label: "Anbieter entfernen", color: "b-red",
+      help: "Entfernt einen Anbieter aus der Konfiguration.",
+      input: { label: "Anbieter", placeholder: "z. B. willhaben.at" },
+      run: (arg) => removeProvider(arg) });
+    cmds.push({ cat: "Konfiguration", label: "Wert setzen", color: "b-lilac",
+      help: "Setzt einen Konfigurationswert. Format: schluessel=wert. Schlüssel: crawler_intervall, max_preis, eintraege_pro_seite.",
+      input: { label: "schluessel=wert", placeholder: "crawler_intervall=30" },
+      options: [{ name: "schluessel", info: "crawler_intervall · max_preis · eintraege_pro_seite", action: () => "Erlaubte Schlüssel: crawler_intervall, max_preis, eintraege_pro_seite" }],
+      run: (arg) => { const m = String(arg || "").split("="); if (m.length !== 2) return { level: "warn", content: "Format: schluessel=wert" };
+        const key = m[0].trim(), val = Number(m[1].trim());
+        if (!["crawler_intervall", "max_preis", "eintraege_pro_seite"].includes(key)) return { level: "warn", content: "Unbekannter Schlüssel: " + key };
+        if (Number.isNaN(val)) return { level: "warn", content: "Wert muss numerisch sein: " + m[1] };
+        const cfg = loadConfig(); cfg[key] = val; saveConfig(cfg); return key + " gesetzt auf " + val; } });
+    cmds.push({ cat: "Konfiguration", label: "Konfiguration zurücksetzen", color: "b-red",
+      help: "Setzt alle Konfigurationswerte auf die Standardwerte zurück.",
+      run: () => { localStorage.removeItem(CONFIG_KEY); return "Konfiguration auf Standardwerte zurückgesetzt."; } });
+
+    /* --- Audio --- */
+    cmds.push({ cat: "Audio", label: "Ton umschalten", color: "b-gold",
+      help: "Schaltet die Interface-Töne ein/aus.",
+      options: [
+        { name: "an", info: "Ton einschalten", action: () => { LcarsSound.setEnabled(true); return "Ton aktiviert."; } },
+        { name: "aus", info: "Ton ausschalten", action: () => { LcarsSound.setEnabled(false); return "Ton deaktiviert."; } }],
+      run: () => { LcarsSound.setEnabled(!LcarsSound.isEnabled()); return "Ton " + (LcarsSound.isEnabled() ? "aktiviert." : "deaktiviert."); } });
+    cmds.push({ cat: "Audio", label: "Lautstärke setzen", color: "b-blue",
+      help: "Setzt die Lautstärke (0–100). Ohne Eingabe wird der aktuelle Wert angezeigt.",
+      input: { label: "Lautstärke 0–100", placeholder: "z. B. 60", type: "number" },
+      run: (arg) => { if (arg === undefined || arg === "" || arg === null) return "Aktuelle Lautstärke: " + Math.round(LcarsSound.getVolume() * 100) + "%";
+        let v = Number(arg); if (Number.isNaN(v)) return { level: "warn", content: "Wert 0–100 angeben." };
+        v = Math.max(0, Math.min(100, v)); LcarsSound.setVolume(v / 100); return "Lautstärke gesetzt auf " + v + "%"; } });
+    cmds.push({ cat: "Audio", label: "Testton abspielen", color: "b-blue",
+      help: "Spielt einen Testton ab. Standard: beep. Optionen wählen andere Töne.",
+      options: ["hover", "beep", "sweep", "ok", "deny"].map(s => ({ name: s, info: "Ton " + s,
+        action: () => { LcarsSound.play(s); return "Testton abgespielt: " + s; } })),
+      run: () => { LcarsSound.play("beep"); return "Testton abgespielt: beep"; } });
+
+    /* --- Logbuch --- */
+    cmds.push({ cat: "Logbuch", label: "Logbuch anzeigen", color: "",
+      help: "Zeigt die letzten Logeinträge (max. 40).",
+      run: () => logs.slice(-40).map(e => `[${e.zeit}] [${e.level.toUpperCase()}] ${e.msg}`).join("\n") || "Logbuch ist leer." });
+    cmds.push({ cat: "Logbuch", label: "Logbuch leeren", color: "b-red",
+      help: "Löscht alle Logeinträge.",
+      run: () => { const n = logs.length; logs.length = 0; return n + " Logeinträge gelöscht."; } });
+
+    /* --- Hilfe --- */
+    cmds.push({ cat: "Hilfe", label: "Alle Befehle auflisten", color: "b-gold",
+      help: "Listet alle verfügbaren Befehle, nach Reiter gruppiert.",
+      run: () => () => { const box = el("div");
+        [...new Set(COMMANDS.map(c => c.cat))].forEach(cat => {
+          box.appendChild(el("h3", { class: "cmd-fb-h3" }, cat));
+          box.appendChild(el("ul", { class: "cmd-ul" }, COMMANDS.filter(c => c.cat === cat).map(c =>
+            el("li", {}, el("strong", {}, c.label), c.help ? " — " + c.help : ""))));
+        });
+        return box; } });
+
+    return cmds;
+  }
+
+  function renderCommandItem(cmd) {
+    const item = el("div", { class: "cmd-item" });
+    const head = el("div", { class: "cmd-item-head" });
+    head.appendChild(el("button", { class: "lcars-btn " + (cmd.color || ""),
+      onclick: () => execCommand(cmd, cmd.input ? undefined : undefined) }, cmd.label));
+    const helpBtn = el("button", { class: "cmd-help-btn", "aria-expanded": "false",
+      onclick: (ev) => { const box = item.querySelector(".cmd-help");
+        const open = box.classList.toggle("open");
+        ev.currentTarget.setAttribute("aria-expanded", String(open));
+        ev.currentTarget.textContent = (open ? "▾ " : "▸ ") + "Hilfe/Optionen";
+        LcarsSound.play("hover"); } }, "▸ Hilfe/Optionen");
+    head.appendChild(helpBtn);
+    item.appendChild(head);
+
+    const help = el("div", { class: "cmd-help" });
+    help.appendChild(el("p", { class: "cmd-help-text" }, cmd.help || "Keine weitere Beschreibung."));
+
+    if (cmd.input) {
+      const inp = el("input", { class: "lcars-input cmd-input", type: cmd.input.type || "text",
+        placeholder: cmd.input.placeholder || "" });
+      const row = el("div", { class: "cmd-input-row" },
+        el("span", { class: "lcars-label" }, cmd.input.label || "Eingabe"),
+        inp,
+        el("button", { class: "lcars-btn b-gold cmd-run",
+          onclick: () => execCommand(cmd, inp.value) }, "Ausführen"));
+      inp.addEventListener("keydown", (ev) => { if (ev.key === "Enter") execCommand(cmd, inp.value); });
+      help.appendChild(row);
+    }
+
+    if (cmd.options && cmd.options.length) {
+      help.appendChild(el("div", { class: "cmd-opt-label" }, "Optionen"));
+      help.appendChild(el("div", { class: "cmd-options" }, cmd.options.map(o =>
+        el("button", { class: "cmd-opt", title: o.info || "",
+          onclick: () => { try { pushFeedback(cmd.label + " " + o.name, "ok", o.action ? o.action() : ("Option: " + o.name)); LcarsSound.play("beep"); }
+            catch (e) { pushFeedback(cmd.label, "error", "Fehler: " + e.message); } } }, o.name))));
+      help.appendChild(el("ul", { class: "cmd-opt-desc" }, cmd.options.map(o =>
+        el("li", {}, el("strong", {}, o.name + ": "), o.info || ""))));
+    }
+
+    item.appendChild(help);
+    return item;
+  }
+
+  panels.befehle = () => {
+    if (!COMMANDS.length) COMMANDS = buildCommands();
+    const cats = [...new Set(COMMANDS.map(c => c.cat))];
+    if (!cats.includes(cmdActiveTab)) cmdActiveTab = cats[0];
+
+    const wrap = el("div");
+    wrap.appendChild(el("h1", { class: "panel-title" }, "Befehlskonsole"));
+    wrap.appendChild(el("p", {}, "Alle Funktionen als Befehle — nach Aufgabe in Reitern. Direkt ausführbar; Hilfe/Optionen blendet Beschreibung und (ausführbare) Optionen ein. Ergebnisse erscheinen rechts im Feedback-Fenster."));
+
+    const layout = el("div", { class: "cmd-layout" });
+
+    const controls = el("div", { class: "cmd-controls" });
+    controls.appendChild(el("div", { class: "cmd-tabs" }, cats.map(cat =>
+      el("button", { class: "cmd-tab" + (cat === cmdActiveTab ? " active" : ""),
+        onclick: () => { cmdActiveTab = cat; LcarsSound.play("beep"); showPanel("befehle"); } }, cat))));
+    controls.appendChild(el("div", { class: "cmd-list" },
+      COMMANDS.filter(c => c.cat === cmdActiveTab).map(renderCommandItem)));
+    layout.appendChild(controls);
+
+    const fb = el("div", { class: "cmd-feedback", id: "cmd-feedback" },
+      cmdFeedbackLog.length ? cmdFeedbackLog.map(renderFeedbackEntry)
+        : [el("p", { class: "cmd-fb-empty" }, "Noch keine Ausgaben. Einen Befehl ausführen …")]);
+    const fbWrap = el("div", { class: "cmd-feedback-wrap" },
+      el("div", { class: "cmd-fb-toolbar" },
+        el("span", { class: "cmd-fb-title" }, "Feedback"),
+        el("button", { class: "lcars-btn b-red cmd-fb-clear",
+          onclick: () => { cmdFeedbackLog = []; LcarsSound.play("deny"); showPanel("befehle"); } }, "leeren")),
+      fb);
+    layout.appendChild(fbWrap);
+
+    wrap.appendChild(layout);
+    setTimeout(() => { fb.scrollTop = fb.scrollHeight; }, 0);
+    return wrap;
+  };
+
   /* ---------------- Initialisierung ---------------- */
 
   async function init() {

@@ -151,6 +151,7 @@ body { display: flex; flex-direction: column; padding: 12px; gap: 8px; }
 .nav-btn:last-of-type  { border-radius: 0 0 0 calc(var(--elbow-r) / 2); }
 
 .nav-btn.c-orange { background: var(--lcars-orange); }
+.nav-btn.c-mars   { background: var(--lcars-mars); }
 .nav-btn.c-peach  { background: var(--lcars-peach); }
 .nav-btn.c-gold   { background: var(--lcars-gold); }
 .nav-btn.c-tan    { background: var(--lcars-tan); }
@@ -360,6 +361,139 @@ h2.section-title {
 .log-ok    { color: #33cc66; }
 .log-warn  { color: var(--lcars-gold); }
 .log-error { color: var(--lcars-alert-red); }
+
+/* ------------------------------------------------------------------ */
+/* Befehlskonsole (Panel „Befehle")                                    */
+/* ------------------------------------------------------------------ */
+
+/* Steuerung links (1 Spalte), Feedback rechts über 2 Spalten (2fr).   */
+.cmd-layout {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr);
+  gap: 12px;
+  align-items: start;
+}
+.cmd-controls { min-width: 0; }
+
+.cmd-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 10px; }
+.cmd-tab {
+  border: 0;
+  background: var(--lcars-violet);
+  color: #000;
+  font-family: var(--lcars-font);
+  font-weight: bold;
+  font-size: 13px;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 14px 14px 0 0;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+}
+.cmd-tab:hover { filter: brightness(1.25); }
+.cmd-tab.active { background: var(--lcars-orange); color: #000; box-shadow: 0 0 10px var(--lcars-peach); }
+
+.cmd-list { display: flex; flex-direction: column; gap: 6px; }
+.cmd-item {
+  background: #0d0800;
+  border-left: 8px solid var(--lcars-orange);
+  border-radius: 0 12px 12px 0;
+  padding: 8px 10px;
+}
+.cmd-item-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.cmd-item-head .lcars-btn { margin: 0; }
+.cmd-help-btn {
+  border: 0;
+  background: transparent;
+  color: var(--lcars-skyblue);
+  font-family: var(--lcars-font);
+  font-size: 12px;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 8px;
+  letter-spacing: 0.05em;
+}
+.cmd-help-btn:hover { color: var(--lcars-peach); }
+
+.cmd-help { display: none; margin-top: 8px; padding-top: 8px; border-top: 1px dashed #442f00; }
+.cmd-help.open { display: block; }
+.cmd-help-text { color: var(--lcars-peach); font-size: 13px; line-height: 1.4; margin-bottom: 6px; }
+.cmd-input-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 6px 0; }
+.cmd-input-row .lcars-label { min-width: 130px; }
+.cmd-input { min-width: 140px; }
+.cmd-opt-label {
+  color: var(--lcars-lilac);
+  text-transform: uppercase;
+  font-size: 12px;
+  margin: 6px 0 4px;
+}
+.cmd-options { display: flex; flex-wrap: wrap; gap: 5px; }
+.cmd-opt {
+  border: 2px solid var(--lcars-gold);
+  background: #110a00;
+  color: var(--lcars-gold);
+  font-family: var(--lcars-font);
+  font-size: 12px;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.cmd-opt:hover { background: var(--lcars-gold); color: #000; }
+.cmd-opt-desc { margin: 6px 0 0 18px; }
+.cmd-opt-desc li { color: var(--lcars-peach); font-size: 12px; line-height: 1.4; }
+
+/* Feedback-Fenster rechts (über 2 Spalten), mit Rollbalken. */
+.cmd-feedback-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border: 2px solid var(--lcars-violet);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.cmd-fb-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--lcars-violet);
+  color: #000;
+  padding: 4px 10px;
+}
+.cmd-fb-title { font-weight: bold; text-transform: uppercase; font-size: 14px; }
+.cmd-fb-clear { margin: 0; padding: 4px 12px; font-size: 11px; }
+.cmd-feedback {
+  background: #050505;
+  padding: 8px;
+  height: 60vh;
+  min-height: 300px;
+  overflow-y: auto;
+}
+.cmd-fb-empty { color: var(--lcars-skyblue); font-size: 13px; padding: 8px; }
+.cmd-fb-entry { border-bottom: 1px solid #221800; padding: 6px 2px; }
+.cmd-fb-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: baseline;
+}
+.cmd-fb-label { color: var(--lcars-peach); font-weight: bold; font-size: 13px; text-transform: uppercase; }
+.cmd-fb-zeit { color: var(--lcars-skyblue); font-size: 11px; white-space: nowrap; }
+.cmd-fb-body { margin-top: 4px; }
+.cmd-fb-h3 { color: var(--lcars-gold); text-transform: uppercase; font-size: 14px; margin: 4px 0; }
+.cmd-ul { margin-left: 20px; }
+.cmd-ul li { color: var(--lcars-peach); font-size: 13px; line-height: 1.45; }
+.cmd-pre {
+  font-family: "Courier New", monospace;
+  font-size: 13px;
+  color: #ffcc99;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+@media (max-width: 900px) {
+  .cmd-layout { grid-template-columns: 1fr; }
+  .cmd-feedback { height: 40vh; }
+}
 
 /* ------------------------------------------------------------------ */
 /* Roter Alarm                                                         */
