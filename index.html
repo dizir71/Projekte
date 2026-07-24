@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LCARS — RolandOS Projektverwaltung</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%23000'/%3E%3Crect x='1' y='2' width='14' height='5' rx='2.5' fill='%23ff9900'/%3E%3Crect x='1' y='9' width='9' height='5' rx='2.5' fill='%23cc99cc'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/lcars.css">
+</head>
+<body>
+  <header id="lcars-header">
+    <div class="header-elbow"></div>
+    <div class="header-bar">
+      <div class="bar-segment seg-1"></div>
+      <div class="bar-segment seg-2"></div>
+      <div class="bar-segment seg-3"></div>
+      <div class="bar-segment seg-4"></div>
+      <div class="seg-cap"></div>
+    </div>
+    <div id="lcars-title">LCARS · RolandOS Projektverwaltung</div>
+    <div id="lcars-clock">—</div>
+  </header>
+
+  <div id="red-alert-banner">Roter Alarm — Alle Decks</div>
+
+  <main id="lcars-main">
+    <nav id="lcars-sidebar" aria-label="Hauptnavigation">
+      <button class="nav-btn c-orange" data-panel="dashboard">Dashboard</button>
+      <button class="nav-btn c-mars"   data-panel="befehle">Befehle</button>
+      <button class="nav-btn c-peach"  data-panel="status">Systemstatus</button>
+      <button class="nav-btn c-lilac"  data-panel="logbuch">Logbuch</button>
+      <button class="nav-btn c-violet" data-panel="konfig">Konfiguration</button>
+      <button class="nav-btn c-blue"   data-panel="konventionen">Konventionen</button>
+      <button class="nav-btn c-gold"   data-panel="export">Datenexport</button>
+      <button class="nav-btn c-sky"    data-panel="diagnostik">Diagnostik</button>
+      <button class="nav-btn c-tan"    data-panel="audio">Audio</button>
+      <button class="nav-btn c-red"    id="btn-red-alert">Roter Alarm</button>
+      <div class="sidebar-num">LCARS 40274</div>
+      <div class="sidebar-filler"></div>
+      <div class="sidebar-num">USS GMUNDEN · NCC-4810</div>
+    </nav>
+    <section id="lcars-content" aria-live="polite"></section>
+  </main>
+
+  <footer id="lcars-footer">
+    <div class="footer-elbow"></div>
+    <div class="footer-bar">
+      <div class="bar-segment fseg-1"></div>
+      <div class="bar-segment fseg-2"></div>
+      <div class="bar-segment fseg-3"></div>
+      <div class="fseg-cap"></div>
+    </div>
+    <div id="lcars-status-line">System bereit</div>
+  </footer>
+
+  <script src="js/lcars-sound.js"></script>
+  <script src="js/lcars-app.js"></script>
+</body>
+</html>
